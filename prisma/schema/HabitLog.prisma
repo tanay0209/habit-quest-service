@@ -1,0 +1,9 @@
+model HabitLog {
+    id        String   @id @default(uuid())
+    habitId   String
+    date      DateTime @db.Date
+    habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+    completed Boolean  @default(false)
+
+    @@unique([habitId, date])
+}

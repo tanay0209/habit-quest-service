@@ -1,0 +1,14 @@
+model Habit {
+    id    String  @id @default(uuid())
+    name  String
+    emoji String?
+    color String?
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    habitlogs HabitLog[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
