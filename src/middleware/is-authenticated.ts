@@ -6,13 +6,8 @@ import { handleError } from "../lib/handle-error";
 
 export const isAuthenticated = async (req: AuthRequest, res: Response, next: NextFunction) => {
     let token;
-
-    if (req.headers.authorization?.startsWith("Bearer ")) {
+    if (req.headers.authorization) {
         token = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!token && req.cookies?.token) {
-        token = req.cookies.token;
     }
 
     if (!token) {

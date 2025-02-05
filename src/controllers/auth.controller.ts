@@ -7,7 +7,6 @@ import { handleError } from "../lib/handle-error";
 import { loginSchema } from "../schema/login-schema";
 import { OAuth2Client } from "google-auth-library";
 import { AuthRequest } from "../lib/auth-request";
-import jwt from "jsonwebtoken"
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
@@ -16,22 +15,16 @@ export const registerUser = async (req: Request, res: Response) => {
             return sendResponse(res, 400, false, validation.error.errors[0].message)
         }
         const { email, username, password } = validation.data
-        const exisitingUsername = await prisma.user.findFirst({
+        const existingUser = await prisma.user.findFirst({
             where: {
-                username
+                OR: [{ username }, { email }]
             }
-        })
-        if (exisitingUsername) {
-            return sendResponse(res, 400, false, "Username already exists")
+        });
+
+        if (existingUser) {
+            return sendResponse(res, 400, false, existingUser.username === username ? "Username already exists" : "Email already exists");
         }
-        const exisitingEmail = await prisma.user.findFirst({
-            where: {
-                email
-            }
-        })
-        if (exisitingEmail) {
-            return sendResponse(res, 400, false, "Email already exists")
-        }
+
         const hashedPassword = await hashPassword(password)
         await prisma.user.create({
             data: {
@@ -42,7 +35,7 @@ export const registerUser = async (req: Request, res: Response) => {
         })
         return sendResponse(res, 201, true, "User registered successfully")
     } catch (error) {
-        handleError(res, error)
+        return handleError(res, error)
     }
 }
 
@@ -68,9 +61,9 @@ export const loginUser = async (req: Request, res: Response) => {
         if (!validPassword) {
             return sendResponse(res, 401, false, "Invalid password")
         }
-        const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: "1d" })
+        const accessToken = generateAccessToken(user.id)
 
-        const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: "7d" })
+        const refreshToken = generateRefreshToken(user.id)
         await prisma.user.update({
             where: {
                 id: user.id
@@ -81,7 +74,7 @@ export const loginUser = async (req: Request, res: Response) => {
         })
         return sendResponse(res, 200, true, "Login successful", { accessToken, refreshToken })
     } catch (error) {
-        handleError(res, error)
+        return handleError(res, error)
     }
 }
 
@@ -107,29 +100,33 @@ export const googleSignIn = async (req: Request, res: Response) => {
         const { sub: googleId, email, name } = payload;
 
         let user = await prisma.user.findUnique({ where: { googleId } });
+        let username = name!;
+        let count = 1;
+        while (await prisma.user.findUnique({ where: { username } })) {
+            username = `${name!}${count++}`;
+        }
 
         if (!user) {
             user = await prisma.user.create({
                 data: {
                     email: email!,
                     googleId,
-                    username: name!,
+                    username,
                 },
             });
         }
 
-        const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "1h" });
-        const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "7d" });
+        const accessToken = generateAccessToken(user.id)
+        const refreshToken = generateRefreshToken(user.id)
 
         await prisma.user.update({
             where: { id: user.id },
             data: { refreshToken },
         });
 
-        // Return the tokens
         return sendResponse(res, 201, true, "Login successful", { accessToken, refreshToken });
     } catch (error) {
-        handleError(res, error);
+        return handleError(res, error);
     }
 };
 
@@ -139,7 +136,8 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
 
         const user = await prisma.user.findUnique({
             where: {
-                id: userId
+                id: userId,
+                NOT: [{ refreshToken: null }]
             },
             select: {
                 username: true,
@@ -151,7 +149,7 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
         }
         return sendResponse(res, 200, true, "User data fetched successfully", { user })
     } catch (error) {
-        handleError(res, error)
+        return handleError(res, error)
     }
 }
 
@@ -159,7 +157,7 @@ export const generateNewRefreshToken = async (req: AuthRequest, res: Response) =
     try {
         const { refreshToken } = req.body
         if (!refreshToken) {
-            sendResponse(res, 401, false, "No refresh token provided")
+            return sendResponse(res, 401, false, "No refresh token provided")
         }
         const user = await prisma.user.findFirst({
             where: {
@@ -168,7 +166,7 @@ export const generateNewRefreshToken = async (req: AuthRequest, res: Response) =
         })
 
         if (!user) {
-            sendResponse(res, 403, false, "Invalid refresh token")
+            return sendResponse(res, 403, false, "Invalid refresh token")
         }
 
         const accessToken = generateAccessToken(user?.id!)
@@ -182,8 +180,24 @@ export const generateNewRefreshToken = async (req: AuthRequest, res: Response) =
                 refreshToken: newRefreshToken
             }
         })
-        return sendResponse(res, 200, true, "Token refreshed", { accessToken, refreshToken })
+        return sendResponse(res, 200, true, "Token refreshed", { accessToken, refreshToken: newRefreshToken })
     } catch (error) {
-        handleError(res, error)
+        return handleError(res, error)
+    }
+}
+
+export const logout = async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id
+    try {
+        await prisma.user.update({
+            where: {
+                id: userId
+            }, data: {
+                refreshToken: null
+            }
+        })
+        return sendResponse(res, 200, true, "Logged out successfully")
+    } catch (error) {
+        return handleError(res, error)
     }
 }

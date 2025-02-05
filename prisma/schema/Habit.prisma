@@ -1,8 +1,10 @@
 model Habit {
-    id    String  @id @default(uuid())
-    name  String
-    emoji String?
-    color String?
+    id          String  @id @default(uuid())
+    title       String
+    emoji       String?
+    color       String?
+    description String?
+    isActive    Boolean @default(true)
 
     userId String
     user   User   @relation(fields: [userId], references: [id])
