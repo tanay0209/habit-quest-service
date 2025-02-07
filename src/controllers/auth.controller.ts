@@ -35,7 +35,7 @@ export const registerUser = async (req: Request, res: Response) => {
         })
         return sendResponse(res, 201, true, "User registered successfully")
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Register User")
     }
 }
 
@@ -74,7 +74,7 @@ export const loginUser = async (req: Request, res: Response) => {
         })
         return sendResponse(res, 200, true, "Login successful", { accessToken, refreshToken })
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Login User")
     }
 }
 
@@ -126,7 +126,7 @@ export const googleSignIn = async (req: Request, res: Response) => {
 
         return sendResponse(res, 201, true, "Login successful", { accessToken, refreshToken });
     } catch (error) {
-        return handleError(res, error);
+        return handleError(res, error, "Google Sign in");
     }
 };
 
@@ -149,7 +149,7 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
         }
         return sendResponse(res, 200, true, "User data fetched successfully", { user })
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "User details")
     }
 }
 
@@ -182,7 +182,7 @@ export const generateNewRefreshToken = async (req: AuthRequest, res: Response) =
         })
         return sendResponse(res, 200, true, "Token refreshed", { accessToken, refreshToken: newRefreshToken })
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Refresh Token")
     }
 }
 
@@ -198,6 +198,6 @@ export const logout = async (req: AuthRequest, res: Response) => {
         })
         return sendResponse(res, 200, true, "Logged out successfully")
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Logout")
     }
 }

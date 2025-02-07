@@ -24,11 +24,19 @@ export const createHabit = async (req: AuthRequest, res: Response) => {
                 description,
                 emoji,
                 color
+            },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                emoji: true,
+                color: true
             }
         })
+
         return sendResponse(res, 201, true, "Habit created successfully", { habit })
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Create Habit")
     }
 }
 
@@ -45,6 +53,7 @@ export const getUserHabits = async (req: AuthRequest, res: Response) => {
                 isActive: true
             },
             select: {
+                id: true,
                 title: true,
                 description: true,
                 emoji: true,
@@ -59,7 +68,7 @@ export const getUserHabits = async (req: AuthRequest, res: Response) => {
         })
         return sendResponse(res, 200, true, "Habits fetched successfully", { habits: habits || [] })
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "User Habits")
     }
 }
 
@@ -91,7 +100,7 @@ export const archiveHabit = async (req: AuthRequest, res: Response) => {
         })
         return sendResponse(res, 200, true, "Habit archived successfully")
     } catch (error) {
-        handleError(res, error)
+        handleError(res, error, "Archive Habits")
     }
 }
 
@@ -101,13 +110,14 @@ export const getHabit = async (req: AuthRequest, res: Response) => {
         if (!userId) {
             return sendResponse(res, 401, false, "Unauthorized")
         }
-        const id = req.query.id as string;
+        const id = req.params.id;
         const habit = await prisma.habit.findFirst({
             where: {
                 id,
                 userId
             },
             select: {
+                id: true,
                 title: true,
                 description: true,
                 emoji: true,
@@ -125,7 +135,7 @@ export const getHabit = async (req: AuthRequest, res: Response) => {
         }
         return sendResponse(res, 200, true, "Habit fetched", { habit })
     } catch (error) {
-        handleError(res, error)
+        handleError(res, error, "Fetch Habit")
     }
 }
 
@@ -160,6 +170,31 @@ export const updateHabit = async (req: AuthRequest, res: Response) => {
 
         return sendResponse(res, 200, true, "Habit updated successfully")
     } catch (error) {
-        handleError(res, error)
+        handleError(res, error, "Update Habit")
+    }
+}
+
+export const getArchivedHabits = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+        if (!userId) {
+            return sendResponse(res, 401, false, "Unauthorized")
+        }
+        const habit = await prisma.habit.findMany({
+            where: {
+                userId,
+                isActive: false
+            },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                emoji: true,
+                color: true
+            }
+        })
+        return sendResponse(res, 200, true, "Habit archived successfully", { habit: habit.length ? habit : [] })
+    } catch (error) {
+        handleError(res, error, "Archived Habits")
     }
 }

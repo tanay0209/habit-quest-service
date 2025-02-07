@@ -19,6 +19,6 @@ export const isAuthenticated = async (req: AuthRequest, res: Response, next: Nex
         req.user = { id: decoded.userId };
         next();
     } catch (error) {
-        return handleError(res, error)
+        return handleError(res, error, "Is authenticated middleware")
     }
 }
