@@ -5,7 +5,7 @@
   "scripts": {
     "start": "nodemon ./src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build":"prisma migrate dev && node tsc"
+    "build":"prisma migrate dev && tsc && node ./dist/index.js"
   },
   "author": "",
   "license": "ISC",

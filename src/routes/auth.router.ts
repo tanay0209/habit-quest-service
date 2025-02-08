@@ -12,4 +12,5 @@ authRouter.get("/v1/get-user-details", isAuthenticated, getUserDetails)
 authRouter.get("/v1/logout", isAuthenticated, logout)
 
 
+
 export default authRouter

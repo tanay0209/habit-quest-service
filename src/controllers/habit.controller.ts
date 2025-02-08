@@ -2,7 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../lib/auth-request";
 import { handleError } from "../lib/handle-error";
 import prisma from "../lib/prisma";
-import { habitSchema } from "../schema/habit-schema";
+import { habitSchema, reorderHabitSchema } from "../schema/habit-schema";
 import { sendResponse } from "../lib/api-response";
 
 
@@ -16,20 +16,27 @@ export const createHabit = async (req: AuthRequest, res: Response) => {
         if (!validated.success) {
             return sendResponse(res, 400, false, validated.error.errors[0].message)
         }
-        const { title, description, emoji, color } = validated.data
+        const { title, description, icon, color } = validated.data
+        const lastHabit = await prisma.habit.findFirst({
+            where: { userId },
+            orderBy: { position: "desc" },
+            select: { position: true },
+        });
+        const nextPosition = lastHabit ? lastHabit.position + 1 : 1;
         const habit = await prisma.habit.create({
             data: {
                 userId: userId!,
                 title,
                 description,
-                emoji,
-                color
+                icon,
+                color,
+                position: nextPosition
             },
             select: {
                 id: true,
                 title: true,
                 description: true,
-                emoji: true,
+                icon: true,
                 color: true
             }
         })
@@ -52,12 +59,17 @@ export const getUserHabits = async (req: AuthRequest, res: Response) => {
                 userId,
                 isActive: true
             },
+            orderBy: {
+                position: "asc"
+            },
             select: {
                 id: true,
                 title: true,
                 description: true,
-                emoji: true,
+                icon: true,
                 color: true,
+                streakBest: true,
+                streakCurrent: true,
                 habitlogs: {
                     select: {
                         completed: true,
@@ -120,8 +132,10 @@ export const getHabit = async (req: AuthRequest, res: Response) => {
                 id: true,
                 title: true,
                 description: true,
-                emoji: true,
+                icon: true,
                 color: true,
+                streakBest: true,
+                streakCurrent: true,
                 habitlogs: {
                     select: {
                         date: true,
@@ -151,7 +165,7 @@ export const updateHabit = async (req: AuthRequest, res: Response) => {
             return sendResponse(res, 400, false, validated.error.errors[0].message)
         }
         const id = req.params.id as string
-        const { title, description, emoji, color, } = validated.data
+        const { title, description, icon, color, } = validated.data
         const habit = await prisma.habit.update({
             where: {
                 id
@@ -159,7 +173,7 @@ export const updateHabit = async (req: AuthRequest, res: Response) => {
             data: {
                 title,
                 description,
-                emoji,
+                icon,
                 color
             }
         })
@@ -189,12 +203,94 @@ export const getArchivedHabits = async (req: AuthRequest, res: Response) => {
                 id: true,
                 title: true,
                 description: true,
-                emoji: true,
+                icon: true,
                 color: true
             }
         })
         return sendResponse(res, 200, true, "Habit archived successfully", { habit: habit.length ? habit : [] })
     } catch (error) {
         handleError(res, error, "Archived Habits")
+    }
+}
+
+export const unarchiveHabit = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+        if (!userId) {
+            return sendResponse(res, 401, false, "Unauthorized")
+        }
+        const habitId = req.params.id
+        const habit = await prisma.habit.findFirst({
+            where: {
+                id: habitId,
+                userId,
+                isActive: false
+            }
+        })
+
+        if (!habit) {
+            return sendResponse(res, 404, false, "Habit not found")
+        }
+
+        await prisma.habit.update({
+            where: {
+                id: habit.id
+            },
+            data: {
+                isActive: true
+            }
+        })
+        return sendResponse(res, 200, true, "Habit archived successfully")
+    } catch (error) {
+        return handleError(res, error, "Unarchive Habit")
+    }
+}
+
+export const deleteHabit = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+        if (!userId) {
+            return sendResponse(res, 401, false, "Unauthorized")
+        }
+        const habitId = req.params.id
+
+        const habit = await prisma.habit.delete({
+            where: {
+                id: habitId,
+                userId,
+                isActive: false
+            }
+        })
+        if (!habit) {
+            return sendResponse(res, 404, false, "Habit not found")
+        }
+        return sendResponse(res, 200, true, "Habit deleted")
+    } catch (error) {
+        return handleError(res, error, "Delete Habit")
+    }
+}
+
+export const reorderHabit = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+        if (!userId) {
+            return sendResponse(res, 401, false, "Unauthorized")
+        }
+        const validated = reorderHabitSchema.safeParse(req.body)
+        if (!validated.success) {
+            return sendResponse(res, 400, false, validated.error.errors[0].message)
+        }
+        const habits = validated.data
+        const updatedPositions = habits.map((habit) => {
+            prisma.habit.update({
+                where: { id: habit.id, userId },
+                data: { position: habit.position }
+            })
+        })
+
+        await Promise.all(updatedPositions)
+        return sendResponse(res, 200, true, "Habits reordered")
+    } catch (error) {
+        return handleError(res, error, "Reorder Habit")
     }
 }
