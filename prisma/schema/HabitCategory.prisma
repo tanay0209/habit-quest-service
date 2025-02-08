@@ -1,0 +1,11 @@
+model HabitCategory {
+    id         String   @id @default(uuid())
+    habitId    String
+    categoryId String
+    habit      Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+    category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+    @@unique([habitId, categoryId])
+    @@index([habitId])
+    @@index([categoryId])
+}

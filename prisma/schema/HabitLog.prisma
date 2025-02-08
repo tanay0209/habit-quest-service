@@ -4,6 +4,10 @@ model HabitLog {
     date      DateTime @db.Date
     habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
     completed Boolean  @default(false)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@unique([habitId, date])
+    @@index([habitId])
+    @@index([date])
 }
