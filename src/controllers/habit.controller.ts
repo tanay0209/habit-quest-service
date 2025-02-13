@@ -8,52 +8,93 @@ import { sendResponse } from "../lib/api-response";
 
 export const createHabit = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
-        const validated = habitSchema.safeParse(req.body)
+        const userId = req.user?.id!;
+
+        const validated = habitSchema.safeParse(req.body);
         if (!validated.success) {
-            return sendResponse(res, 400, false, validated.error.errors[0].message)
+            return sendResponse(res, 400, false, validated.error.errors[0].message);
         }
-        const { title, description, icon, color } = validated.data
+
+        const { title, description, icon, color, categories } = validated.data;
+
         const lastHabit = await prisma.habit.findFirst({
             where: { userId },
             orderBy: { position: "desc" },
             select: { position: true },
         });
+
         const nextPosition = lastHabit ? lastHabit.position + 1 : 1;
+
+        if (categories && categories.length > 0) {
+            const existingCategories = await prisma.category.findMany({
+                where: {
+                    id: { in: categories },
+                    userId,
+                },
+                select: { id: true },
+            });
+
+            const existingCategoryIds = existingCategories.map((cat) => cat.id);
+            const invalidCategories = categories.filter((id) => !existingCategoryIds.includes(id));
+
+            if (invalidCategories.length > 0) {
+                return sendResponse(res, 400, false, `Invalid categories: ${invalidCategories.join(", ")}`);
+            }
+        }
+
         const habit = await prisma.habit.create({
             data: {
-                userId: userId!,
+                userId,
                 title,
                 description,
                 icon,
                 color,
-                position: nextPosition
+                position: nextPosition,
+            },
+            select: {
+                id: true
+            }
+        });
+
+        if (categories && categories.length > 0) {
+            await prisma.habitCategory.createMany({
+                data: categories.map((categoryId) => ({
+                    habitId: habit.id,
+                    categoryId,
+                })),
+                skipDuplicates: true,
+            });
+        }
+
+        const updatedHabit = await prisma.habit.findFirst({
+            where: {
+                id: habit.id
             },
             select: {
                 id: true,
                 title: true,
                 description: true,
-                icon: true,
-                color: true
+                color: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                icon: true
             }
         })
-
-        return sendResponse(res, 201, true, "Habit created successfully", { habit })
+        return sendResponse(res, 201, true, "Habit created successfully", { updatedHabit });
     } catch (error) {
-        return handleError(res, error, "Create Habit")
+        return handleError(res, error, "Create Habit");
     }
-}
+};
+
 
 export const getUserHabits = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
+        const userId = req.user?.id!
 
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
         const habits = await prisma.habit.findMany({
             where: {
                 userId,
