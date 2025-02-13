@@ -212,46 +212,53 @@ export const getHabit = async (req: AuthRequest, res: Response) => {
 
 export const updateHabit = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
-        if (!userId) {
-            sendResponse(res, 401, false, "Unauthorized")
+        const userId = req.user?.id!;
+        const id = req.params.id;
+
+        const validated = habitSchema.safeParse(req.body);
+        if (!validated.success) {
+            return sendResponse(res, 400, false, validated.error.errors[0].message);
         }
 
-        const validated = habitSchema.safeParse(req.body)
-        if (!validated.success) {
-            return sendResponse(res, 400, false, validated.error.errors[0].message)
+        const { title, description, icon, color, categories } = validated.data;
+
+        const existingHabit = await prisma.habit.findUnique({
+            where: { id, userId },
+            select: { id: true },
+        });
+
+        if (!existingHabit) {
+            return sendResponse(res, 404, false, "Habit not found");
         }
-        const id = req.params.id as string
-        const { title, description, icon, color, } = validated.data
-        const habit = await prisma.habit.update({
-            where: {
-                id
-            },
+
+        const updatedHabit = await prisma.habit.update({
+            where: { id },
             data: {
                 title,
                 description,
                 icon,
-                color
-            }
-        })
+                color,
+                habitCategories: categories
+                    ? {
+                        deleteMany: {},
+                        create: categories.map((categoryId) => ({
+                            category: { connect: { id: categoryId } },
+                        })),
+                    }
+                    : undefined,
+            },
+        });
 
-        if (!habit) {
-            return sendResponse(res, 404, false, "Habit not found")
-        }
-
-        return sendResponse(res, 200, true, "Habit updated successfully")
+        return sendResponse(res, 200, true, "Habit updated successfully");
     } catch (error) {
-        handleError(res, error, "Update Habit")
+        handleError(res, error, "Update Habit");
     }
-}
+};
 
 export const getArchivedHabits = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
-        const habit = await prisma.habit.findMany({
+        const userId = req.user?.id!
+        const habits = await prisma.habit.findMany({
             where: {
                 userId,
                 isActive: false
@@ -261,21 +268,28 @@ export const getArchivedHabits = async (req: AuthRequest, res: Response) => {
                 title: true,
                 description: true,
                 icon: true,
-                color: true
+                color: true,
+                habitCategories: {
+                    select: {
+                        category: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                },
             }
         })
-        return sendResponse(res, 200, true, "Habit archived successfully", { habit: habit.length ? habit : [] })
+        return sendResponse(res, 200, true, "Fetched archived habits", { habits: habits.length ? habits : [] })
     } catch (error) {
-        handleError(res, error, "Archived Habits")
+        handleError(res, error, "Archive Habits")
     }
 }
 
 export const unarchiveHabit = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
+        const userId = req.user?.id!
         const habitId = req.params.id
         const habit = await prisma.habit.findFirst({
             where: {
@@ -306,9 +320,6 @@ export const unarchiveHabit = async (req: AuthRequest, res: Response) => {
 export const deleteHabit = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
         const habitId = req.params.id
 
         const habit = await prisma.habit.delete({
@@ -327,12 +338,9 @@ export const deleteHabit = async (req: AuthRequest, res: Response) => {
     }
 }
 
-export const reorderHabit = async (req: AuthRequest, res: Response) => {
+export const reorderHabits = async (req: AuthRequest, res: Response) => {
     try {
-        const userId = req.user?.id
-        if (!userId) {
-            return sendResponse(res, 401, false, "Unauthorized")
-        }
+        const userId = req.user?.id!
         const validated = reorderHabitSchema.safeParse(req.body)
         if (!validated.success) {
             return sendResponse(res, 400, false, validated.error.errors[0].message)
