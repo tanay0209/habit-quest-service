@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { generateNewRefreshToken, getUserDetails, googleSignIn, loginUser, logout, registerUser } from "../controllers/auth.controller";
+import { deleteAccount, generateNewRefreshToken, getUserDetails, googleSignIn, loginUser, logout, registerUser } from "../controllers/auth.controller";
 import { isAuthenticated } from "../middleware/is-authenticated";
 
 const authRouter = Router()
@@ -10,6 +10,7 @@ authRouter.post("/v1/google-sign-in", googleSignIn)
 authRouter.post("/v1/refresh-token", generateNewRefreshToken)
 authRouter.get("/v1/get-user-details", isAuthenticated, getUserDetails)
 authRouter.get("/v1/logout", isAuthenticated, logout)
+authRouter.delete("/v1/delete-account", isAuthenticated, deleteAccount)
 
 
 

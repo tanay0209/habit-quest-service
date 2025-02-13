@@ -140,6 +140,7 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
                 NOT: [{ refreshToken: null }]
             },
             select: {
+                id: true,
                 username: true,
                 email: true
             }
@@ -199,5 +200,23 @@ export const logout = async (req: AuthRequest, res: Response) => {
         return sendResponse(res, 200, true, "Logged out successfully")
     } catch (error) {
         return handleError(res, error, "Logout")
+    }
+}
+
+export const deleteAccount = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+
+        const user = await prisma.user.delete({
+            where: {
+                id: userId
+            }
+        })
+        if (!user) {
+            return sendResponse(res, 404, false, "User not found")
+        }
+        return sendResponse(res, 200, true, "User deleted successfully")
+    } catch (error) {
+        return handleError(res, error, "Delete account")
     }
 }
