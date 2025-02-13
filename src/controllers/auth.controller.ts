@@ -7,6 +7,7 @@ import { handleError } from "../lib/handle-error";
 import { loginSchema } from "../schema/login-schema";
 import { OAuth2Client } from "google-auth-library";
 import { AuthRequest } from "../lib/auth-request";
+import { usernameSchema } from "../schema/util-schema";
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
@@ -218,5 +219,37 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
         return sendResponse(res, 200, true, "User deleted successfully")
     } catch (error) {
         return handleError(res, error, "Delete account")
+    }
+}
+
+export const updateUsername = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id
+        const validation = usernameSchema.safeParse(req.body)
+        if (!validation.success) {
+            return sendResponse(res, 400, false, validation.error.errors[0].message)
+        }
+        const { username } = validation.data
+
+        const user = await prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+                username
+            },
+            select: {
+                username: true
+            }
+        })
+
+        if (!user) {
+            return sendResponse(res, 404, false, "User not found")
+        }
+
+        return sendResponse(res, 200, true, "Username updated successfully", { user })
+
+    } catch (error) {
+        handleError(res, error, "Update username")
     }
 }
