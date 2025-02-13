@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "habitCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "maxHabit" INTEGER NOT NULL DEFAULT 5;

@@ -7,12 +7,12 @@ habitRouter.post("/v1/create-habit", createHabit)
 habitRouter.post("/v1/reorder-habits",)
 
 habitRouter.put("/v1/update-habit/:id", updateHabit)
+habitRouter.put("/v1/archive-habit/:id", archiveHabit)
 
 habitRouter.get("/v1/get-habits", getUserHabits)
 habitRouter.get("/v1/get-habit/:id", getHabit)
 habitRouter.get("/v1/get-archived-habits", getArchivedHabits)
 habitRouter.get("/v1/unarchive-habit/:id", unarchiveHabit)
-habitRouter.get("/v1/archive-habit/:id", archiveHabit)
 
 habitRouter.delete("/v1/delete-habit/:id", deleteHabit)
 

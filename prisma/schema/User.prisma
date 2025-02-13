@@ -9,6 +9,8 @@ model User {
     categories   Category[]
     coins        Int        @default(100)
     createdAt    DateTime   @default(now())
+    maxHabit     Int        @default(5)
+    habitCount   Int        @default(0)
     updatedAt    DateTime   @updatedAt
 
     @@index([username])
