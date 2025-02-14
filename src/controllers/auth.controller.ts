@@ -143,7 +143,16 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
             select: {
                 id: true,
                 username: true,
-                email: true
+                email: true,
+                categoryCount: true,
+                categoryMax: true,
+                categories: {
+                    select: {
+                        id: true,
+                        icon: true,
+                        name: true
+                    }
+                }
             }
         })
         if (!user) {
