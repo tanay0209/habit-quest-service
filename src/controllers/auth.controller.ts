@@ -50,8 +50,8 @@ export const loginUser = async (req: Request, res: Response) => {
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
-                    { username: userId },
-                    { email: userId }
+                    { username: userId.trim() },
+                    { email: userId.trim() }
                 ]
             }
         })
@@ -144,6 +144,9 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
                 id: true,
                 username: true,
                 email: true,
+                coins: true,
+                maxHabit: true,
+                habitCount: true,
                 categoryCount: true,
                 categoryMax: true,
                 categories: {
@@ -164,7 +167,7 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
     }
 }
 
-export const generateNewRefreshToken = async (req: AuthRequest, res: Response) => {
+export const generateNewRefreshToken = async (req: Request, res: Response) => {
     try {
         const { refreshToken } = req.body
         if (!refreshToken) {
