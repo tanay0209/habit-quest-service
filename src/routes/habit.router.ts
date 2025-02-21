@@ -3,18 +3,18 @@ import { archiveHabit, createHabit, deleteHabit, getArchivedHabits, getHabit, ge
 
 const habitRouter = Router()
 
-habitRouter.post("/v1/create-habit", createHabit)
-habitRouter.post("/v1/reorder-habits",)
+habitRouter.post("/v1/create", createHabit)
+habitRouter.post("/v1/reorder",)
 
-habitRouter.put("/v1/update-habit/:id", updateHabit)
-habitRouter.put("/v1/archive-habit/:id", archiveHabit)
+habitRouter.put("/v1/update/:id", updateHabit)
+habitRouter.put("/v1/archive/:id", archiveHabit)
 
-habitRouter.get("/v1/get-habits", getUserHabits)
+habitRouter.get("/v1/get", getUserHabits)
 habitRouter.get("/v1/get-habit/:id", getHabit)
-habitRouter.get("/v1/get-archived-habits", getArchivedHabits)
-habitRouter.get("/v1/unarchive-habit/:id", unarchiveHabit)
+habitRouter.get("/v1/get-archived", getArchivedHabits)
+habitRouter.get("/v1/unarchive/:id", unarchiveHabit)
 
-habitRouter.delete("/v1/delete-habit/:id", deleteHabit)
+habitRouter.delete("/v1/delete/:id", deleteHabit)
 
 
 export default habitRouter
