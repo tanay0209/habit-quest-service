@@ -1,4 +1,4 @@
-import { Response } from "express";
+import e, { Response } from "express";
 import { AuthRequest } from "../lib/auth-request";
 import { handleError } from "../lib/handle-error";
 import prisma from "../lib/prisma";
@@ -359,3 +359,63 @@ export const reorderHabits = async (req: AuthRequest, res: Response) => {
         return handleError(res, error, "Reorder Habit")
     }
 }
+
+export const toggleHabitCompletion = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id!;
+        const habitId = req.params.id;
+
+        const today = new Date();
+        const dateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+        const existingLog = await prisma.habitLog.findFirst({
+            where: {
+                habitId,
+                date: dateOnly,
+            },
+        });
+
+        if (existingLog) {
+            await prisma.$transaction([
+                prisma.habitLog.delete({
+                    where: {
+                        id: existingLog.id,
+                    },
+                }),
+                prisma.user.update({
+                    where: { id: userId },
+                    data: {
+                        coins: {
+                            decrement: 1,
+                        },
+                    },
+                }),
+            ]);
+
+            return sendResponse(res, 200, true, "Marked incomplete");
+        }
+
+        await prisma.$transaction([
+            prisma.habitLog.create({
+                data: {
+                    habitId,
+                    date: dateOnly,
+                    completed: true,
+                },
+            }),
+            prisma.user.update({
+                where: { id: userId },
+                data: {
+                    coins: {
+                        increment: 1,
+                    },
+                },
+            }),
+        ]);
+
+        return sendResponse(res, 200, true, "Marked completed");
+    } catch (error) {
+        return handleError(res, error, "Toggle habit completion");
+    }
+};
+
