@@ -134,7 +134,6 @@ export const googleSignIn = async (req: Request, res: Response) => {
 export const getUserDetails = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id
-
         const user = await prisma.user.findUnique({
             where: {
                 id: userId,
@@ -154,6 +153,37 @@ export const getUserDetails = async (req: AuthRequest, res: Response) => {
                         id: true,
                         icon: true,
                         name: true
+                    }
+                },
+                habits: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        icon: true,
+                        color: true,
+                        streakBest: true,
+                        streakCurrent: true,
+                        position: true,
+                        habitlogs: {
+                            select: {
+                                id: true,
+                                date: true,
+                                completed: true
+                            }
+                        },
+                        habitCategories: {
+                            select: {
+                                category: {
+                                    select: {
+                                        name: true,
+                                        icon: true,
+                                        id: true
+                                    }
+                                }
+                            }
+                        },
+
                     }
                 }
             }

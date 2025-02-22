@@ -75,6 +75,14 @@ export const createHabit = async (req: AuthRequest, res: Response) => {
                 description: true,
                 color: true,
                 icon: true,
+                streakBest: true,
+                streakCurrent: true,
+                habitlogs: {
+                    select: {
+                        date: true,
+                        completed: true
+                    }
+                },
                 habitCategories: {
                     select: {
                         category: {
@@ -129,10 +137,15 @@ export const getUserHabits = async (req: AuthRequest, res: Response) => {
                         date: true
                     }
                 },
-                category: {
+                habitCategories: {
                     select: {
-                        name: true,
-                        id: true
+                        category: {
+                            select: {
+                                id: true,
+                                name: true,
+                                icon: true,
+                            }
+                        }
                     }
                 }
             }

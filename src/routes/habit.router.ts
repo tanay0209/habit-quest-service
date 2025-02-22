@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { archiveHabit, createHabit, deleteHabit, getArchivedHabits, getHabit, getUserHabits, toggleHabitCompletion, unarchiveHabit, updateHabit } from "../controllers/habit.controller";
+import { archiveHabit, createHabit, deleteHabit, getArchivedHabits, getHabit, getUserHabits, toggleHabitCompletion, unarchiveHabit, updateHabit, reorderHabits } from "../controllers/habit.controller";
 
 const habitRouter = Router()
 
 habitRouter.post("/v1/create", createHabit)
-habitRouter.post("/v1/reorder",)
+habitRouter.post("/v1/reorder", reorderHabits)
 
 habitRouter.put("/v1/update/:id", updateHabit)
 habitRouter.put("/v1/archive/:id", archiveHabit)
